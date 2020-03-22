@@ -1,28 +1,39 @@
 ﻿using System;
+using NfcSamples.ViewModels;
+using NfcSamples.Views;
+using Prism;
+using Prism.Ioc;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 
 namespace NfcSamples
 {
-    public partial class App : Application
+    public partial class App
     {
         public App()
         {
             InitializeComponent();
-
-            MainPage = new MainPage();
         }
 
-        protected override void OnStart()
+        public App(IPlatformInitializer platformInitializer) : base(platformInitializer)
         {
+
         }
 
-        protected override void OnSleep()
+        protected override void OnInitialized()
         {
+            InitializeComponent();
+
+            // 起動直後にMainPageを表示する。
+            NavigationService.NavigateAsync("NavigationPage/MainPage");
         }
 
-        protected override void OnResume()
+        protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
+            containerRegistry.RegisterForNavigation<NavigationPage>();
+
+            // View「MainPage」ViewModels「MainPageViewModel」を登録する。
+            containerRegistry.RegisterForNavigation<MainPage, MainPageViewModel>();
         }
     }
 }
