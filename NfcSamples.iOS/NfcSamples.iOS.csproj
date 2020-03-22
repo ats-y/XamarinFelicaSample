@@ -70,6 +70,7 @@
     <None Include="Entitlements.plist" />
     <None Include="Info.plist" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="NfcService\NfcService.cs" />
   </ItemGroup>
   <ItemGroup>
     <InterfaceDefinition Include="Resources\LaunchScreen.storyboard" />
@@ -137,5 +138,8 @@
       <Project>{BF0502C6-4777-40E8-8AB0-F002EC6BB72B}</Project>
       <Name>NfcSamples</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="NfcService\" />
   </ItemGroup>
 </Project>

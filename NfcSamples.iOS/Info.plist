@@ -34,5 +34,11 @@
 	<string>NfcSamples</string>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/AppIcon.appiconset</string>
+	<key>com.apple.developer.nfc.readersession.felica.systemcodes</key>
+	<array>
+		<string>0003</string>
+	</array>
+	<key>NFCReaderUsageDescription</key>
+	<string>FeliCa読みます。</string>
 </dict>
 </plist>
