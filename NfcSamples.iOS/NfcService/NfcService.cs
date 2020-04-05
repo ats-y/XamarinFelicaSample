@@ -48,7 +48,7 @@ namespace NfcSamples.iOS.NfcService
 
             // NFC読取セッションを開始する。
             _session = new NFCTagReaderSession(NFCPollingOption.Iso18092, this, DispatchQueue.CurrentQueue);
-            _session.AlertMessage = "Suika/Kitacaをかざして";
+            _session.AlertMessage = "Suica/Kitacaをかざして";
             _session.BeginSession();
         }
 
