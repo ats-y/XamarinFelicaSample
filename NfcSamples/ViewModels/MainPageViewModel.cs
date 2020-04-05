@@ -14,7 +14,7 @@ namespace NfcSamples.ViewModels
         /// <summary>
         /// NFCサービス
         /// </summary>
-        private INfcService _nfcService;
+        private readonly INfcService _nfcService;
 
         /// <summary>
         /// NFCポーリング開始コマンド
