@@ -6,17 +6,16 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     x:Class="NfcSamples.Views.MainPage"
-    Title="MainPage">
+    Title="FeliCa Sample">
     <StackLayout>
         <Button
             Text="Start NFC Polling"
             Command="{Binding StartPollingCommand}" />
-        <Button
-            Text="Stop NFC Polling"
-            Command="{Binding StopPollingCommand}" />
         <Label
             HorizontalOptions="Center"
             VerticalOptions="CenterAndExpand"
+            FontSize="Large"
+            d:Text="残高：8,888円"
             Text="{Binding Remaining, StringFormat='残高：{0:#,0}円'}" />
     </StackLayout>
 </ContentPage>

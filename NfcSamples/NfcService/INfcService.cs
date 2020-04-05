@@ -1,9 +1,15 @@
 ﻿using System;
 namespace NfcSamples.NfcService
 {
+    /// <summary>
+    /// NFCサービス
+    /// </summary>
     public interface INfcService
     {
-        void StartPolling(Action<int> getRemaining);
-        void StopPolling();
+        /// <summary>
+        /// Suicaポーリング開始。
+        /// </summary>
+        /// <param name="getRemaining">Suica検知デリゲート。引数はSuicaから読み取った残高。</param>
+        void StartPollingSuica(Action<int> getRemaining);
     }
 }
