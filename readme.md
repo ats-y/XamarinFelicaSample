@@ -6,13 +6,23 @@ Suica/Kitacaの残高を表示できます。
 
 ## 画面イメージ
 
+起動直後
+
 ![起動直後](Images/001.png)
+
+読取待ち
 
 ![スキャン待ち](Images/002.png)
 
+カード検知
+
 ![NFC検知](Images/003.png)
 
+読み取った残高の表示
+
 ![残高表示](Images/004.png)
+
+失敗時
 
 ![失敗時](Images/005.png)
 
@@ -39,7 +49,7 @@ namespace NfcSamples  {
 
     namespace NfcService{
         interface INfcService{
-            StartPollingSuica(Action<int> getRemaining)
+            StartScanningSuica(Action<int, DateTime> onScanAction)
         }
     }
 

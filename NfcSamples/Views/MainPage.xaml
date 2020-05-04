@@ -7,14 +7,24 @@
     mc:Ignorable="d"
     x:Class="NfcSamples.Views.MainPage"
     Title="FeliCa Sample">
-    <StackLayout>
+    <StackLayout
+        VerticalOptions="Center">
+
         <Button
-            Text="Start NFC Polling"
-            Command="{Binding StartPollingCommand}" />
+            Text="Suica/Kitacaを読み取る"
+            FontSize="Large"
+            Command="{Binding StartScanningCommand}" />
+
         <Label
             HorizontalOptions="Center"
-            VerticalOptions="CenterAndExpand"
+            IsVisible="{Binding IsVisibleRemaining}"
+            d:Text="yyyy/mm/dd"
+            Text="{Binding UseDate, StringFormat='{0:yyyy/M/d}'}"/>
+
+        <Label
+            HorizontalOptions="Center"
             FontSize="Large"
+            IsVisible="{Binding IsVisibleRemaining}"
             d:Text="残高：8,888円"
             Text="{Binding Remaining, StringFormat='残高：{0:#,0}円'}" />
     </StackLayout>

@@ -9,7 +9,7 @@ namespace NfcSamples.NfcService
         /// <summary>
         /// Suicaポーリング開始。
         /// </summary>
-        /// <param name="getRemaining">Suica検知デリゲート。引数はSuicaから読み取った残高。</param>
-        void StartPollingSuica(Action<int> getRemaining);
+        /// <param name="onScanAction">Suica検知デリゲート。引数はSuicaから読み取った残高。</param>
+        void StartScanningSuica(Action<int, DateTime> onScanAction);
     }
 }

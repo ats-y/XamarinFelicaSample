@@ -20,15 +20,26 @@ namespace NfcSamples.iOS.NfcService
     public class NfcService : NFCTagReaderSessionDelegate, INfcService
     {
         /// <summary>
+        /// SuiCa残高をスキャンした際に呼び出す。
+        /// int引数は読み取った残高。
+        /// </summary>
+        private Action<int, DateTime> _onScanAction;
+
+        /// <summary>
         /// NFCタグ読取セッション
         /// </summary>
         private NFCTagReaderSession _session;
 
         /// <summary>
-        /// SuiCa残高をスキャンした際に呼び出す。
-        /// int引数は読み取った残高。
+        /// FeliCaタグ
         /// </summary>
-        private Action<int> _onScanAction;
+        private INFCFeliCaTag _felicaTag;
+
+        /// <summary>
+        /// Suica履歴のサービスコード
+        /// （リトルエンディアン）
+        /// </summary>
+        private static readonly NSData[] ServiceCodes = { NSData.FromArray(new byte[] { 0x0F, 0x09 }) };
 
         /// <summary>
         /// コンストラクタ
@@ -41,7 +52,7 @@ namespace NfcSamples.iOS.NfcService
         /// Suicaポーリングを開始する。
         /// </summary>
         /// <param name="onScanAction"></param>
-        public void StartPollingSuica(Action<int> onScanAction)
+        public void StartScanningSuica(Action<int, DateTime> onScanAction)
         {
             // Suica検知デリゲートを保存。
             _onScanAction = onScanAction;
@@ -67,8 +78,8 @@ namespace NfcSamples.iOS.NfcService
         /// <summary>
         /// NFC読取セッションがタグを検知されたら呼び出される。
         /// </summary>
-        /// <param name="session"></param>
-        /// <param name="tags"></param>
+        /// <param name="session">NFC読取セッション</param>
+        /// <param name="tags">検知タグ</param>
         public override void DidDetectTags(NFCTagReaderSession session, INFCTag[] tags)
         {
             Debug.WriteLine($"DidDetectTags");
@@ -81,85 +92,100 @@ namespace NfcSamples.iOS.NfcService
                 if (connectErr != null)
                 {
                     Debug.WriteLine($"Connect Error = [{connectErr}]");
-                    session.InvalidateSession("タグに接続失敗。");
+                    session.InvalidateSession("タグ接続失敗。");
                     return;
                 }
 
                 // FeliCa準拠のタグプロトコルを取得する。
-                INFCFeliCaTag felica = tags[0].GetNFCFeliCaTag();
-                if (felica == null) return;
+                _felicaTag = tags[0].GetNFCFeliCaTag();
+                if (_felicaTag == null) return;
 
+                // FeliCaのRequest Serviceコマンドを実行し、
                 // サービスコード0x090Fを指定し、カード種別およびカード残額情報サービスに接続する。
                 // （サービスコードはリトルエンディアンで）
-                byte[] bytesServiceCode = { 0x09, 0x0f };
-                Array.Reverse(bytesServiceCode);
-                NSData[] serviceCodes = { NSData.FromArray(bytesServiceCode) };
-                felica.RequestService(serviceCodes, (datas, err) =>
-                {
-                    // 接続エラー時はメッセージを表示してNFC読取セッションを終了する、
-                    if (err != null)
-                    {
-                        Debug.WriteLine($"RequestService Error = [{err}]");
-                        session.InvalidateSession("カード種別およびカード残額情報サービスに接続失敗。");
-                        return;
-                    }
-
-                    // 鍵バージョン（リトルエンディアン）
-                    byte[] keyVersion = datas[0].ToArray();
-                    if( keyVersion.SequenceEqual( new byte[] { 0xff, 0xff }))
-                    {
-                        // 0xFFFFはエラー。
-                        Debug.WriteLine($"鍵バージョンが0xffff");
-                        session.InvalidateSession("カード種別およびカード残額情報サービスが存在しない。");
-                        return;
-                    }
-
-                    // ReadWithoutEncryptionコマンドで
-                    // ブロック番号0〜11の12個分のブロックを読み取るブロックリストを作成する。
-                    List<NSData> readBlocks = new List<NSData>();
-                    for (int i = 0; i < 12; i++)
-                    {
-                        byte[] block = new byte[] { 0x80, (byte)i };
-                        readBlocks.Add(NSData.FromArray(block));
-                    }
-
-                    // ブロックデータを読み出す。
-                    felica.ReadWithoutEncryption(serviceCodes
-                        , readBlocks.ToArray()
-                        , (status1, status2, dataList, readErr) =>
-                    {
-                        // ReadWithoutEncryptionエラー。
-                        if (readErr != null)
-                        {
-                            Debug.WriteLine($"ReadWithoutEncryption error = {readErr}");
-                            session.InvalidateSession("ReadWithoutEncryptionエラー");
-                            return;
-                        }
-
-                        // ステータスフラグ異常。
-                        if (status1 != 0x00 || status2 != 0x00)
-                        {
-                            Debug.WriteLine($"status error. status1={status1:X2} status2={status2:X2}");
-                            session.InvalidateSession("ステータスフラグが異常");
-                            return;
-                        }
-
-                        // 読取セッションを終了する。画面には成功イメージが表示される。
-                        session.InvalidateSession();
-
-                        // 読み取ったブロックデータから残高を取り出す。
-                        byte[] readBytes = dataList[0].ToArray();
-                        int year = (readBytes[4] >> 1) + 2000;
-                        int month = ((readBytes[4] & 1) == 1 ? 8 : 0) + (readBytes[5] >> 5);
-                        int day = readBytes[5] & 0x1f;
-                        int remaining = readBytes[10] + (readBytes[11] << 8);
-                        Debug.WriteLine($"{year}年{month}月{day}日 {remaining}円");
-
-                        // 残高を通知する。
-                        _onScanAction(remaining);
-                    });
-                });
+                _felicaTag.RequestService(ServiceCodes, OnCompletedRequestService);
             });
+        }
+
+        /// <summary>
+        /// FeliCaのRequest Serviceコマンドのレスポンス受信ハンドラ
+        /// </summary>
+        /// <param name="nodeVersions">ノード鍵バージョンリスト</param>
+        /// <param name="err">エラー</param>
+        private void OnCompletedRequestService(NSData[] nodeVersions, NSError err)
+        {
+            // 接続エラー時はメッセージを表示してNFC読取セッションを終了する、
+            if (err != null)
+            {
+                Debug.WriteLine($"RequestService Error = [{err}]");
+                _session.InvalidateSession("カード種別およびカード残額情報サービスに接続失敗。");
+                return;
+            }
+
+            // 鍵バージョン（リトルエンディアン）
+            byte[] keyVersion = nodeVersions[0].ToArray();
+            if (keyVersion.SequenceEqual(new byte[] { 0xff, 0xff }))
+            {
+                // 0xFFFFは指定したノードが存在しない。
+                Debug.WriteLine($"鍵バージョンが0xffff");
+                _session.InvalidateSession("カード種別およびカード残額情報サービスが存在しない。");
+                return;
+            }
+
+            // ReadWithoutEncryptionコマンドで
+            // ブロック番号0〜11の12個分のブロックを読み取るブロックリストを作成する。
+            List<NSData> readBlocks = new List<NSData>();
+            for (int i = 0; i < 12; i++)
+            {
+                byte[] block = new byte[] { 0x80, (byte)i };
+                readBlocks.Add(NSData.FromArray(block));
+            }
+
+            // ブロックデータを読み出す。
+            _felicaTag.ReadWithoutEncryption(ServiceCodes
+                , readBlocks.ToArray()
+                , OnCompletedReadWithoutEncryption);
+        }
+
+        /// <summary>
+        /// FeliCaのRead Without Encryptionコマンドのレスポンス受信ハンドラ
+        /// </summary>
+        /// <param name="statusFlag1">ステータスフラグ1</param>
+        /// <param name="statusFlag2">ステータスフラグ2</param>
+        /// <param name="blockData">ブロックデータ</param>
+        /// <param name="error">エラー</param>
+        private void OnCompletedReadWithoutEncryption(nint statusFlag1, nint statusFlag2, NSData[] blockData, NSError error)
+        {
+            // ReadWithoutEncryptionエラー。
+            if (error != null)
+            {
+                Debug.WriteLine($"ReadWithoutEncryption error = {error}");
+                _session.InvalidateSession("ReadWithoutEncryptionエラー");
+                return;
+            }
+
+            // ステータスフラグ異常。
+            if (statusFlag1 != 0x00 || statusFlag2 != 0x00)
+            {
+                Debug.WriteLine($"status error. status1={statusFlag1:X2} status2={statusFlag2:X2}");
+                _session.InvalidateSession("ステータスフラグが異常");
+                return;
+            }
+
+            // 読取セッションを終了する。画面には成功イメージが表示される。
+            _session.InvalidateSession();
+
+            // 読み取ったブロックデータから残高を取り出す。
+            byte[] readBytes = blockData[0].ToArray();
+            int year = (readBytes[4] >> 1) + 2000;
+            int month = ((readBytes[4] & 1) == 1 ? 8 : 0) + (readBytes[5] >> 5);
+            int day = readBytes[5] & 0x1f;
+            int remaining = readBytes[10] + (readBytes[11] << 8);
+            DateTime useDate = new DateTime(year, month, day);
+            Debug.WriteLine($"{year}年{month}月{day}日 {remaining}円");
+
+            // 残高を通知する。
+            _onScanAction(remaining, useDate);
         }
     }
 }
