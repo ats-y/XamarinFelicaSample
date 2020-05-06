@@ -49,9 +49,9 @@ namespace NfcSamples.iOS.NfcService
         }
 
         /// <summary>
-        /// Suicaポーリングを開始する。
+        /// Suica読取開始。
         /// </summary>
-        /// <param name="onScanAction"></param>
+        /// <param name="onScanAction">Suica検知デリゲート。引数はSuicaから読み取った残高と日付。</param>
         public void StartScanningSuica(Action<int, DateTime> onScanAction)
         {
             // Suica検知デリゲートを保存。

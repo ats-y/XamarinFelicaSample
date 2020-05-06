@@ -35,6 +35,8 @@ Suica/Kitacaの残高を表示できます。
 
 ```plantuml
 
+skinparam classAttributeIconSize 0
+
 namespace NfcSamples  {
 
     namespace Views{
@@ -42,7 +44,9 @@ namespace NfcSamples  {
     }
 
     namespace ViewModels{
-        class MainPageViewModel
+        class MainPageViewModel{
+            - void OnStartScanningCommand()
+        }
     }
 
     NfcSamples.Views.MainPageView --> "BindingContext" NfcSamples.ViewModels.MainPageViewModel
@@ -52,8 +56,6 @@ namespace NfcSamples  {
             StartScanningSuica(Action<int, DateTime> onScanAction)
         }
     }
-
-    NfcSamples.ViewModels.MainPageViewModel --> "_nfcService" NfcSamples.NfcService.INfcService
 }
 
 namespace NfcSample.iOS {
@@ -62,8 +64,20 @@ namespace NfcSample.iOS {
         class NfcService 
 
         NfcService --|> CoreNFC.NFCTagReaderSessionDelegate
+
+        note left of NfcService
+            CoreNFCを使った
+            FeliCa読取処理 
+        end note
     }
 }
+
+NfcSamples.ViewModels.MainPageViewModel ..> NfcSample.iOS.NfcService.NfcService 
+note right on link 
+    DependencyServiceで
+    PCLからiOSプロジェクトの
+    FeliCa読取処理を呼び出し。
+end note
 
 NfcSample.iOS.NfcService.NfcService ..|> NfcSamples.NfcService.INfcService
 

@@ -56,7 +56,7 @@ namespace NfcSamples.ViewModels
         }
 
         /// <summary>
-        /// NFCポーリング開始コマンドイベントハンドラ
+        /// NFC読取開始コマンドイベントハンドラ
         /// </summary>
         private void OnStartScanningCommand()
         {
@@ -65,7 +65,7 @@ namespace NfcSamples.ViewModels
             Remaining = 0;
             UseDate = DateTime.MinValue;
 
-            // NFCポーリングを開始する。
+            // NFCの読取を開始する。
             INfcService nfcService = DependencyService.Get<INfcService>();
             nfcService.StartScanningSuica((remaining, useDate) =>
             {
